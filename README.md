@@ -2,6 +2,16 @@
 **Java · Spring Boot · Gradle · LangChain4j · MCP · Claude · Testing · CI/CD · Docker · GitHub**
 
 ---
+In this lab, you will build a real AI agent not a chatbot.
+The agent will understand user intent and take real actions on GitHub using MCP.
+
+
+**This project implements an AI Agent.**
+An AI Agent is a system that:
+•	understands user intent,
+•	reasons about what needs to be done,
+•	and takes actions on external systems through controlled tools.
+---
 
 ## 🎯 Global Lab Objective
 
@@ -183,19 +193,20 @@ Each step in this lab **must have its own issue**.
 
 ## 🔗 STEP ↔ GitHub Issue Mapping
 
-| Lab Step | GitHub Issue Title |
-|--------|-------------------|
-| STEP 1 | `[STEP 1] Bootstrap project with Spring Initializr` |
-| STEP 2 | `[STEP 2] Add LangChain4j 1.10.0 dependencies` |
-| STEP 3 | `[STEP 3] Configure Anthropic and MCP endpoints` |
-| STEP 4 | `[STEP 4] Connect LangChain4j to Claude` |
-| STEP 5 | `[STEP 5] Implement MCP HTTP client` |
-| STEP 6 | `[STEP 6] Bridge MCP tools with LangChain4j` |
-| STEP 7 | `[STEP 7] Expose Agent REST API` |
-| STEP 8 | `[STEP 8] Add unit tests for MCP bridge` |
-| STEP 9 | `[STEP 9] Add integration tests` |
-| STEP 10 | `[STEP 10] Dockerize the agent` |
-| STEP 11 | `[STEP 11] Setup CI/CD with GitHub Actions` |
+| Lab Step | GitHub Issue Title                                  |
+|----------|-----------------------------------------------------|
+| STEP 1   | `[STEP 1] Bootstrap project with Spring Initializr` |
+| STEP 1.1 | `[STEP 1.1] Create sample User`                     |
+| STEP 2   | `[STEP 2] Add LangChain4j 1.10.0 dependencies`      |
+| STEP 3   | `[STEP 3] Configure Anthropic and MCP endpoints`    |
+| STEP 4   | `[STEP 4] Connect LangChain4j to Claude`            |
+| STEP 5   | `[STEP 5] Implement MCP HTTP client`                |
+| STEP 6   | `[STEP 6] Bridge MCP tools with LangChain4j`        |
+| STEP 7   | `[STEP 7] Expose Agent REST API`                    |
+| STEP 8   | `[STEP 8] Add unit tests for MCP bridge`            |
+| STEP 9   | `[STEP 9] Add integration tests`                    |
+| STEP 10  | `[STEP 10] Dockerize the agent`                     |
+| STEP 11  | `[STEP 11] Setup CI/CD with GitHub Actions`         |
 
 ---
 
@@ -298,11 +309,13 @@ Export secrets:
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-xxx
 export GITHUB_TOKEN=github_pat_xxx
+export GITHUB_OWNER="whoIam"
+export GITHUB_REPO="lab_mcp_ai_agent_springboot"
 ```
 
 ---
 
-## 🔹 STEP 0.5 — Run the GitHub MCP HTTP Wrapper (Local Development)
+## 🔹 STEP 0.1 — Run the GitHub MCP HTTP Wrapper (Local Development)
 
 In this step, students will run **both**:
 - the **official GitHub MCP Server (STDIO)** locally via Docker
@@ -316,7 +329,7 @@ by the Spring Boot application and later deployable to Docker / Minikube.
 
 ---
 
-### 0.5.1 Prerequisites
+### 0.1.1 Prerequisites
 
 Ensure the following are installed on your development machine:
 
@@ -333,9 +346,10 @@ docker version
 
 ---
 
-### 0.5.2 Configure GitHub Authentication
+### 0.1.2 Configure GitHub Authentication
 
 Create a GitHub Personal Access Token (PAT):
+- in GitHub/Settings/Developer settings/Personal access tokens/Fine-grained tokens
 
 - Prefer a **Fine-grained token**
 - Grant:
@@ -350,7 +364,7 @@ export GITHUB_PERSONAL_ACCESS_TOKEN=ghp_xxxxxxxxxxxxxxxxx
 
 ---
 
-### 0.5.3 Run the Official GitHub MCP Server (STDIO)
+### 0.1.3 Run the Official GitHub MCP Server (STDIO)
 
 The GitHub MCP server runs in **STDIO mode** and is required by the HTTP wrapper.
 
@@ -370,10 +384,11 @@ Do not stop this container while working on the lab.
 
 ---
 
-### 0.5.4 Install Dependencies for the HTTP Wrapper
+### 0.1.4 Install Dependencies for the HTTP Wrapper
+
+copy/clone https://github.com/pierre-filliolaud/lab_mcp_ai_agent_springboot
 
 From the project root:
-
 ```bash
 cd mcp-github-http-wrapper
 npm install
@@ -386,7 +401,7 @@ This installs:
 
 ---
 
-### 0.5.5 Start the MCP HTTP Wrapper
+### 0.1.5 Start the MCP HTTP Wrapper
 
 In a **second terminal**, start the wrapper:
 
@@ -405,7 +420,7 @@ Internally, the wrapper:
 
 ---
 
-### 0.5.6 Verify MCP Tools Are Available
+### 0.1.6 Verify MCP Tools Are Available
 
 In a **third terminal**, test the MCP endpoint:
 
@@ -441,7 +456,7 @@ in the Spring Boot MCP client.
 
 ---
 
-### 0.5.7 Architecture Reminder
+### 0.1.7 Architecture Reminder
 
 At this stage, the local architecture is:
 
@@ -474,8 +489,8 @@ Select the following options:
 - **Language**: Java
 - **Spring Boot**: 3.3.x (or latest 3.x)
 - **Group**: `com.example`
-- **Artifact**: `mcp-agent`
-- **Name**: `mcp-agent`
+- **Artifact**: `agent`
+- **Name**: `agent`
 - **Packaging**: Jar
 - **Java**: 21
 
@@ -505,8 +520,8 @@ curl https://start.spring.io/starter.zip \
 ```
 
 ```bash
-unzip mcp-agent.zip
-cd mcp-agent
+unzip agent.zip
+cd agent
 ```
 
 ---
@@ -532,17 +547,25 @@ You should see a **404 page** (expected, no controller yet).
 
 # Target Recommended Package Layout
 ```text
-net.filecode.agent
+com.example.agent
 ├── Application.java
 ├── config/
 │   ├── LangChainConfig.java
 │   ├── WebClientConfig.java
 │   └── PropertiesConfig.java           (optional)
+├── domain/
+│   └── User.java
 ├── web/
 │   ├── AgentController.java
-│   └── DebugController.java            (optional)
+│   ├── UserController.java
+│   ├── DebugController.java            (optional)
+│   ├── dto/
+│   └── └── UserDTO.java
 ├── service/
-│   └── AgentService.java
+│   ├── UserService.java
+│   ├── AgentService.java
+│   ├── dto/
+│   └── └── UserDTO.java
 ├── agent/
 │   ├── BacklogAgent.java               (LangChain4j AI Service interface)
 │   └── prompts/                        (optional: prompt constants)
@@ -565,7 +588,7 @@ net.filecode.agent
 
 ---
 
-# 🔹 STEP 1.5 — Setup CI/CD (Build & Test)
+# 🔹 STEP 1.4 — Setup CI/CD (Build & Test)
 
 > 🚨 **CI is mandatory immediately after STEP 1**
 
@@ -615,6 +638,255 @@ Validation:
 
 ---
 
+# 🔹 STEP 1.5 — Add a Simple “User” Vertical Slice (Domain + Service + Web)
+
+### 🎯 Objective
+Before adding AI/MCP complexity, implement a minimal, clean **vertical slice** to validate:
+
+- package structure (`domain`, `service`, `web`)
+- Spring dependency injection
+- REST endpoint behavior
+- basic testing approach
+
+This step produces a working example:
+
+```text
+UserController (web)
+  ↓
+UserService (service)
+  ↓
+User (domain)
+```
+
+---
+
+## 1.5.1 Create the Domain Model
+
+Create file: `src/main/java/com/example/agent/domain/User.java`
+
+```java
+package com.example.agent.domain;
+
+public record User(String id, String name, String email) { }
+```
+
+---
+
+## 1.5.2 Create the Service
+
+Create file: `src/main/java/com/example/agent/service/UserService.java`
+
+```java
+package com.example.agent.service;
+
+import com.example.agent.domain.User;
+import org.springframework.stereotype.Service;
+
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+@Service
+public class UserService {
+
+    private final Map<String, User> store = new ConcurrentHashMap<>();
+
+    public User create(String name, String email) {
+        String id = UUID.randomUUID().toString();
+        User user = new User(id, name, email);
+        store.put(id, user);
+        return user;
+    }
+
+    public User getById(String id) {
+        User user = store.get(id);
+        if (user == null) {
+            throw new IllegalArgumentException("User not found: " + id);
+        }
+        return user;
+    }
+}
+```
+
+---
+
+## 1.5.3 Create the Web Controller
+
+Create file: `src/main/java/com/example/agent/web/UserController.java`
+
+```java
+package com.example.agent.web;
+
+import com.example.agent.domain.User;
+import com.example.agent.service.UserService;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/users")
+public class UserController {
+
+    private final UserService users;
+
+    public UserController(UserService users) {
+        this.users = users;
+    }
+
+    @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    public User create(@RequestParam String name, @RequestParam String email) {
+        return users.create(name, email);
+    }
+
+    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public User getById(@PathVariable String id) {
+        return users.getById(id);
+    }
+}
+```
+
+---
+
+## 1.5.4 Run and Test Manually
+
+Run:
+```bash
+./gradlew bootRun
+```
+
+Create a user:
+```bash
+curl -s -X POST "http://localhost:8080/api/users?name=Alice&email=alice@example.com"
+```
+
+Expected response (example):
+```json
+{"id":"...","name":"Alice","email":"alice@example.com"}
+```
+
+Copy the returned `id`, then fetch it:
+```bash
+curl -s "http://localhost:8080/api/users/<ID>"
+```
+
+---
+
+## 1.5.5 Integration Test — `UserControllerIT`
+
+### 🎯 Objective
+Add an **integration test** that starts the Spring Boot application context and tests the real HTTP endpoints:
+
+- `POST /api/users`
+- `GET /api/users/{id}`
+
+This validates:
+- Spring wiring (**Controller → Service → Domain**)
+- JSON serialization/deserialization
+- HTTP routing and status codes
+
+---
+
+### 1.5.5.1 Prerequisites
+
+This test uses `WebTestClient`, which is already required later for MCP.
+
+Ensure the following dependencies are present in `build.gradle`:
+
+```gradle
+implementation "org.springframework:spring-webflux"
+testImplementation "org.springframework.boot:spring-boot-starter-test"
+```
+
+---
+
+### 1.5.5.2 Create the Integration Test
+
+Create file: `src/test/java/com/example/agent/web/UserControllerIT.java`
+
+```java
+package com.example.agent.web;
+
+import com.example.agent.domain.User;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.web.reactive.server.WebTestClient;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+class UserControllerIT {
+
+    @Autowired
+    WebTestClient web;
+
+    @Test
+    void should_create_and_get_user() {
+        // 1) Create a user
+        User created = web.post()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/api/users")
+                        .queryParam("name", "Alice")
+                        .queryParam("email", "alice@example.com")
+                        .build())
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(User.class)
+                .returnResult()
+                .getResponseBody();
+
+        assertThat(created).isNotNull();
+        assertThat(created.id()).isNotBlank();
+        assertThat(created.name()).isEqualTo("Alice");
+        assertThat(created.email()).isEqualTo("alice@example.com");
+
+        // 2) Retrieve the user by id
+        User fetched = web.get()
+                .uri("/api/users/{id}", created.id())
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(User.class)
+                .returnResult()
+                .getResponseBody();
+
+        assertThat(fetched).isNotNull();
+        assertThat(fetched.id()).isEqualTo(created.id());
+        assertThat(fetched.name()).isEqualTo("Alice");
+        assertThat(fetched.email()).isEqualTo("alice@example.com");
+    }
+}
+```
+
+---
+
+### 1.5.5.3 Run the Tests
+
+Execute:
+
+```bash
+./gradlew test
+```
+
+### ✅ Expected Result
+- The Spring context starts successfully
+- The controller endpoints respond correctly
+- The test passes locally and in CI
+
+---
+
+## ✅ Step Validation Checklist
+
+- [ ] `User` domain record exists in `domain/`
+- [ ] `UserService` exists in `service/`
+- [ ] `UserController` exists in `web/`
+- [ ] `POST /api/users` returns a JSON user
+- [ ] `GET /api/users/{id}` returns the same user
+- [ ] `UserControllerIT` passes
+- [ ] `./gradlew test` is green
+
+> This step validates the architecture conventions used for the rest of the lab (agent, tools, MCP).
+
+---
+
 # 🔹 STEP 2 — Dependencies : use the LangChain4j BOM (keeps versions aligned)
 
 Edit `build.gradle`:
@@ -631,6 +903,7 @@ dependencies {
   // LangChain4j core + Anthropic
   implementation "dev.langchain4j:langchain4j"
   implementation "dev.langchain4j:langchain4j-anthropic"
+  //implementation "dev.langchain4j:langchain4j-openai"
 
   // Optional: JDK HTTP client integration
   implementation "dev.langchain4j:langchain4j-http-client-jdk"
@@ -658,6 +931,11 @@ github:
 anthropic:
   api-key: ${ANTHROPIC_API_KEY}
   model: claude-opus-4-20250514
+  timeout-seconds: 60
+  
+openai:
+  api-key: demo
+  model: gpt-4o-mini
   timeout-seconds: 60
 
 mcp:
@@ -709,6 +987,7 @@ public interface BacklogAgent {
 package net.filecode.agent.config;
 
 import dev.langchain4j.model.anthropic.AnthropicChatModel;
+//import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.service.AiServices;
 import net.filecode.agent.BacklogAgent;
 import net.filecode.agent.tools.AgentTool;
@@ -736,6 +1015,19 @@ public class LangChainConfig {
             .timeout(Duration.ofSeconds(timeoutSeconds))
             .build();
   }
+
+//  @Bean
+//  public OpenAiChatModel openAiChatModel(
+//          @Value("${openai.api-key}") String apiKey,
+//          @Value("${openai.model}") String model,
+//          @Value("${openai.timeout-seconds:60}") Integer timeoutSeconds
+//  ) {
+//    return OpenAiChatModel.builder()
+//            .apiKey(apiKey)
+//            .modelName(model) // gpt-4o-mini
+//            .timeout(Duration.ofSeconds(timeoutSeconds))
+//            .build();
+//  }
 
   @Bean
   public BacklogAgent backlogAgent(AnthropicChatModel model, List<AgentTool> tools) {
@@ -1119,7 +1411,7 @@ jobs:
         run: ./gradlew --no-daemon clean test
 
       - name: Docker Build (no push)
-        run: docker build -t local/ai-agent:ci .
+        run: docker build -t local/agent:ci .
 ```
 
 ## 11.2 CD (GHCR)
@@ -1446,6 +1738,217 @@ curl http://localhost:8080/api/agent/run \
 - **403 Forbidden**: token permissions insufficient → check fine-grained PAT (Issues RW).
 - **No tool calls**: strengthen system prompt (“MUST use tools”).
 - **Wrong MCP path**: verify GitHub MCP server endpoint and update `mcp.path`.
+
+---
+
+# 🔹 STEP 13 — Kubernetes Smoke Test on Minikube (CI)
+
+### 🎯 Objective
+Add a **Kubernetes smoke test** running in GitHub Actions:
+
+- Start a Minikube cluster
+- Build the Docker image inside Minikube
+- Deploy the application with Kubernetes manifests
+- Verify the service is reachable via `/actuator/health`
+- Print pod logs on failure
+
+> ✅ This step validates Docker + Kubernetes integration  
+> ❌ External calls (Anthropic / OpenAI / GitHub MCP) are disabled in CI
+
+---
+
+## 13.1 Enable Actuator (Health Endpoint)
+
+Add dependency in `build.gradle`:
+
+```gradle
+implementation "org.springframework.boot:spring-boot-starter-actuator"
+```
+
+Expose health endpoint in `application.yml`:
+
+```yaml
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+```
+
+---
+
+## 13.2 Add a CI Spring Profile (LLM Stub)
+
+To avoid external API calls in CI, we use a **stub ChatModel**.
+
+### 13.2.1 CI ChatModel Stub
+
+Create file:  
+`src/main/java/net/filecode/agent/config/CiChatModelConfig.java`
+
+```java
+package net.filecode.agent.config;
+
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.data.message.AiMessage;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+
+@Configuration
+@Profile("ci")
+public class CiChatModelConfig {
+
+    @Bean
+    public ChatModel ciChatModel() {
+        return request -> ChatResponse.builder()
+                .aiMessage(AiMessage.from("CI OK"))
+                .build();
+    }
+}
+```
+
+---
+
+### 13.2.2 Disable Real LLM Beans in CI
+
+In `LangChainConfig`, mark real LLM beans as non‑CI:
+
+```java
+@Bean
+@Profile("!ci")
+public AnthropicChatModel anthropicChatModel(...) { ... }
+
+@Bean
+@Profile("!ci")
+public OpenAiChatModel openAiChatModel(...) { ... }
+```
+
+Ensure `BacklogAgent` depends on `ChatModel` (not provider-specific).
+
+---
+
+## 13.3 Kubernetes Manifests
+
+Create directory:
+
+```bash
+mkdir -p src/main/k8s
+```
+
+Create file:  
+`src/main/k8s/ai-agent-deployment.yml`
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-agent
+  template:
+    metadata:
+      labels:
+        app: ai-agent
+    spec:
+      containers:
+        - name: ai-agent
+          image: ai-agent:ci
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "ci"
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-agent
+spec:
+  selector:
+    app: ai-agent
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+```
+
+---
+
+## 13.4 GitHub Actions — Minikube Job
+
+Add this job to your CI workflow (e.g. `.github/workflows/ci.yml`):
+
+```yaml
+kubernetes:
+  runs-on: ubuntu-latest
+  needs: build-test-docker
+
+  steps:
+    - uses: actions/checkout@v4
+
+    - name: Start Minikube
+      uses: medyagh/setup-minikube@master
+
+    - name: Verify cluster
+      run: kubectl get nodes
+
+    - name: Build Docker image inside Minikube
+      run: |
+        eval $(minikube -p minikube docker-env)
+        docker build -t ai-agent:ci .
+
+    - name: Deploy to Minikube
+      run: kubectl apply -f src/main/k8s/ai-agent-deployment.yml
+
+    - name: Wait for pod ready
+      run: |
+        kubectl wait --for=condition=Ready pod -l app=ai-agent --timeout=180s
+        kubectl get pods
+        minikube service list
+
+    - name: Test service health endpoint
+      uses: nick-fields/retry@v3
+      with:
+        timeout_seconds: 10
+        max_attempts: 6
+        command: |
+          curl -fsS "$(minikube service ai-agent --url)/actuator/health"
+
+    - name: Log pods on failure
+      if: failure()
+      run: |
+        kubectl get pods -o wide
+        kubectl logs -l app=ai-agent --tail=200
+```
+
+---
+
+## ✅ Step Validation Checklist
+
+- [ ] Actuator health endpoint enabled
+- [ ] CI profile runs without external API keys
+- [ ] Application deploys in Minikube
+- [ ] `/actuator/health` reachable in CI
+- [ ] Kubernetes job is green
 
 ---
 
