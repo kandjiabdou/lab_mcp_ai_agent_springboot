@@ -1,0 +1,17 @@
+github:
+  owner: test-owner
+  repo: test-repo
+
+anthropic:
+  api-key: test-key
+  model: claude-3-haiku-20240307
+  timeout-seconds: 10
+
+openai:
+  api-key: test-key
+  model: gpt-4o-mini
+  timeout-seconds: 10
+
+mcp:
+  base-url: http://localhost:3333
+  path: /mcp
