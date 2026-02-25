@@ -1,0 +1,7 @@
+.git
+.github
+.metals
+agent/build
+agent/.gradle
+mcp-github-http-wrapper/node_modules
+*.md
