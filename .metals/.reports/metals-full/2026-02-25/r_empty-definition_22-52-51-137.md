@@ -1,3 +1,14 @@
+error id: file:///C:/Users/abduk/Documents/etude/efrei/S9/integration_cloud/cloud2/lab_mcp_ai_agent_springboot/agent/src/main/java/com/example/agent/config/LangChainConfig.java:_empty_/OpenAiChatModel#builder#apiKey#modelName#timeout#build#
+file:///C:/Users/abduk/Documents/etude/efrei/S9/integration_cloud/cloud2/lab_mcp_ai_agent_springboot/agent/src/main/java/com/example/agent/config/LangChainConfig.java
+empty definition using pc, found symbol in pc: _empty_/OpenAiChatModel#builder#apiKey#modelName#timeout#build#
+empty definition using semanticdb
+empty definition using fallback
+non-local guesses:
+
+offset: 967
+uri: file:///C:/Users/abduk/Documents/etude/efrei/S9/integration_cloud/cloud2/lab_mcp_ai_agent_springboot/agent/src/main/java/com/example/agent/config/LangChainConfig.java
+text:
+```scala
 package com.example.agent.config;
 
 import dev.langchain4j.model.openai.OpenAiChatModel;
@@ -25,7 +36,7 @@ public class LangChainConfig {
            .apiKey(apiKey)
            .modelName(model) // gpt-4o-mini
            .timeout(Duration.ofSeconds(timeoutSeconds))
-           .build();
+           .@@build();
  }
 
   @Bean
@@ -40,3 +51,9 @@ public class LangChainConfig {
             .build();
   }
 }
+```
+
+
+#### Short summary: 
+
+empty definition using pc, found symbol in pc: _empty_/OpenAiChatModel#builder#apiKey#modelName#timeout#build#
