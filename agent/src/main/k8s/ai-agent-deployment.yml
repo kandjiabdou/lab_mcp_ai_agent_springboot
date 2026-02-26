@@ -39,6 +39,7 @@ kind: Service
 metadata:
   name: ai-agent
 spec:
+  type: NodePort
   selector:
     app: ai-agent
   ports:
