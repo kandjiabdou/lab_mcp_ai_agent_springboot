@@ -1,0 +1,9 @@
+# Edit GITHUB_OWNER and GITHUB_REPO to match your GitHub account before applying.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agent-config
+  namespace: lab-agent
+data:
+  GITHUB_OWNER: "kandjiabdou"
+  GITHUB_REPO: "lab_mcp_ai_agent_springboot"

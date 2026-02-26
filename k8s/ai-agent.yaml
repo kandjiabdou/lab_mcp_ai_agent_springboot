@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-agent
+  namespace: lab-agent
+  labels:
+    app: ai-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-agent
+  template:
+    metadata:
+      labels:
+        app: ai-agent
+    spec:
+      containers:
+        - name: ai-agent
+          image: ai-agent:dev
+          imagePullPolicy: IfNotPresent
+          env:
+            # ── Secret values ──────────────────────────────────────────────────
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: agent-secrets
+                  key: OPENAI_API_KEY
+            # ── MCP endpoint (ClusterIP service inside the cluster) ─────────────
+            - name: MCP_BASE_URL
+              value: "http://github-mcp-server:3333"
+            - name: MCP_PATH
+              value: "/mcp"
+            # ── GitHub repo config (from ConfigMap) ────────────────────────────
+            - name: GITHUB_OWNER
+              valueFrom:
+                configMapKeyRef:
+                  name: agent-config
+                  key: GITHUB_OWNER
+            - name: GITHUB_REPO
+              valueFrom:
+                configMapKeyRef:
+                  name: agent-config
+                  key: GITHUB_REPO
+          ports:
+            - containerPort: 8080
+              name: http
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 40
+            periodSeconds: 15
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-agent
+  namespace: lab-agent
+  labels:
+    app: ai-agent
+spec:
+  type: ClusterIP
+  selector:
+    app: ai-agent
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
