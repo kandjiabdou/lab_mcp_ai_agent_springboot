@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: github-mcp-server
+  namespace: lab-agent
+  labels:
+    app: github-mcp-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: github-mcp-server
+  template:
+    metadata:
+      labels:
+        app: github-mcp-server
+    spec:
+      # docker:dind sidecar provides a Docker daemon for the wrapper to use
+      # (the Node.js wrapper spawns ghcr.io/github/github-mcp-server via docker run)
+      initContainers: []
+      containers:
+        # ── Sidecar: Docker daemon (DinD) ─────────────────────────────────────
+        - name: dind
+          image: docker:26-dind
+          securityContext:
+            privileged: true          # required for DinD
+          env:
+            - name: DOCKER_TLS_CERTDIR
+              value: ""               # disable TLS → plain TCP on 2375
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+
+        # ── Main: Node.js MCP HTTP wrapper ────────────────────────────────────
+        - name: github-mcp-server
+          image: github-mcp-server:dev
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: GITHUB_PERSONAL_ACCESS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: agent-secrets
+                  key: GITHUB_PERSONAL_ACCESS_TOKEN
+            # Point Docker CLI to the DinD sidecar (no TLS)
+            - name: DOCKER_HOST
+              value: "tcp://localhost:2375"
+            - name: PORT
+              value: "3333"
+            - name: MCP_PATH
+              value: "/mcp"
+          ports:
+            - containerPort: 3333
+              name: http
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 3333
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 3333
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "300m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: github-mcp-server
+  namespace: lab-agent
+  labels:
+    app: github-mcp-server
+spec:
+  type: ClusterIP
+  selector:
+    app: github-mcp-server
+  ports:
+    - name: http
+      port: 3333
+      targetPort: 3333
+      protocol: TCP
