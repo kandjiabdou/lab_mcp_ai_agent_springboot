@@ -20,9 +20,11 @@ jobs:
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
+        working-directory: agent
 
       - name: Build & Test
         run: ./gradlew --no-daemon clean test
+        working-directory: agent
 
       - name: Docker Build (no push)
         run: docker build -t local/agent:ci .
