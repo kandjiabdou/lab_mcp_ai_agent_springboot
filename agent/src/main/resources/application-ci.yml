@@ -1,0 +1,13 @@
+# CI profile overrides — stubs external credentials so the app starts without real API keys
+github:
+  owner: ci-stub
+  repo: ci-stub
+
+openai:
+  api-key: ci-stub
+  model: gpt-4o-mini
+  timeout-seconds: 60
+
+mcp:
+  base-url: http://localhost:3333
+  path: /mcp
